@@ -46,7 +46,7 @@ Resources:
           set -x
           yum update -y
           yum -y groupinstall "Development Tools"
-          yum -y install git aws-cli openssl-devel bzip2-devel libffi-devel
+          yum -y install git aws-cli openssl-devel bzip2-devel libffi-devel libglvnd-glx
           wget https://www.python.org/ftp/python/3.10.14/Python-3.10.14.tgz
           tar xzf Python-3.10.14.tgz
           rm -rf Python-3.10.14.tgz
@@ -64,22 +64,25 @@ Resources:
           export S3_BUCKET_NAME=$s3_bucket_name
           export AWS_REGION=${AWS::Region}
           export AWS_DEFAULT_REGION=${AWS::Region}
-          echo "export PATH=$PATH:/usr/local/bin/python3.10.14" >> /home/ec2-user/.bash_profile
+          echo "export PATH=$PATH:usr/local/bin/python3.10" >> /home/ec2-user/.bash_profile
           echo "export STREAMLIT_SERVER_PORT=8501" >> /home/ec2-user/.bash_profile
           echo "export S3_BUCKET_NAME=$s3_bucket_name" >> /home/ec2-user/.bash_profile
           echo "export AWS_REGION=${AWS::Region}" >> /home/ec2-user/.bash_profile
           echo "export AWS_DEFAULT_REGION=${AWS::Region}" >> /home/ec2-user/.bash_profile
           cd /home/ec2-user/
+          git clone https://github.com/duttaabh/virtual_trainer
+          cd /home/ec2-user/virtual_trainer
           python3.10 -m venv venv
           source venv/bin/activate
           echo "source ~/venv/bin/activate" >> /home/ec2-user/.bash_profile
-          git clone https://github.com/duttaabh/virtual_trainer
-          pip3.10 install -r virtual_trainer/requirements.txt
-          cp -r virtual_trainer /home/ec2-user/virtual_trainer
+          pip3.10 install -r requirements.txt
+          python3.10 populate_user_profile.py
           echo "#!/bin/bash" >> /home/ec2-user/setup_env.sh
           echo "source ~/.bash_profile" >> /home/ec2-user/setup_env.sh
           chmod 755 /home/ec2-user/setup_env.sh
           chown -R ec2-user:ec2-user /home/ec2-user/
+          rm -rf nohup.out
+          nohup python3.10 -m streamlit run main.py &
   InstanceSecurityGroup:
     Type: 'AWS::EC2::SecurityGroup'
     Properties:
