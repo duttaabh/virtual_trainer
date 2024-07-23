@@ -2,7 +2,13 @@ import time
 
 import boto3
 import json
+import os
 import pandas as pd
+
+if 'AWS_REGION' not in os.environ:
+    region = 'us-east-1'
+else:
+    region = os.environ['AWS_REGION']
 
 def create_table(table_name, region):
     dynamodb = boto3.resource('dynamodb', region_name=region)
@@ -45,4 +51,4 @@ if __name__ == '__main__':
                 {'item': df_trackers_json, 'table': 'exercise_details'}]
 
     for element in lst_Dics:
-        insertDynamoItem(create_table(table_name=element['table'], region='us-east-1'), element['item'])
+        insertDynamoItem(create_table(table_name=element['table'], region=region), element['item'])
