@@ -1,0 +1,124 @@
+AWSTemplateFormatVersion: 2010-09-09
+
+Description: Deploy Virtual Trainer app on EC2
+
+Parameters:
+
+  LatestAmiId:
+    Type: 'AWS::SSM::Parameter::Value<AWS::EC2::Image::Id>'
+    Default: '/aws/service/ami-amazon-linux-latest/amzn2-ami-hvm-x86_64-gp2'
+    AllowedPattern: "^(?=\\s*\\S).*$"
+
+  S3BucketName:
+    Description: S3 bucket to upload the PDF files
+    Type: String
+    Default: 'vt-exercise-videos'
+    AllowedPattern: "^(?=\\s*\\S).*$"
+
+  CidrIPRange:
+    Description: Please enter the Public CIDR of your local PC (e.g. 73.13.100.24/32)
+    Type: String
+    Default: 73.13.100.24/32
+    AllowedPattern: "^(?=\\s*\\S).*$"
+
+Resources:
+  S3Bucket:
+    Type: 'AWS::S3::Bucket'
+    DeletionPolicy: Retain
+    Properties:
+      BucketName: !Ref S3BucketName
+  EC2KeyPair:
+    Type: 'AWS::EC2::KeyPair'
+    Properties:
+      KeyName: !Sub '${AWS::StackName}-EC2KeyPair'
+  EC2Instance:
+    Type: AWS::EC2::Instance
+    Properties:
+      ImageId: !Ref LatestAmiId
+      InstanceType: c3.2xlarge
+      KeyName: !Ref EC2KeyPair
+      SecurityGroups:
+        - !Ref InstanceSecurityGroup
+      IamInstanceProfile: !Ref InstanceProfile
+      UserData:
+        Fn::Base64: !Sub |
+          #!/bin/bash
+          set -x
+          yum update -y
+          yum -y groupinstall "Development Tools"
+          yum -y install git aws-cli openssl-devel bzip2-devel libffi-devel
+          wget https://www.python.org/ftp/python/3.10.14/Python-3.10.14.tgz
+          tar xzf Python-3.10.14.tgz
+          rm -rf Python-3.10.14.tgz
+          cd Python-3.10.14
+          ./configure --enable-optimizations
+          make altinstall
+          su ec2-user
+          s3_bucket_name=${S3BucketName}
+          admin_role="arn:aws:iam::${AWS::AccountId}:role/${AdminRole}"
+          echo $s3_bucket_name > /home/ec2-user/envconfig.txt
+          echo $admin_role >> /home/ec2-user/envconfig.txt
+          export PATH=$PATH:/usr/local/bin/python3.10.14
+          echo $PATH
+          export STREAMLIT_SERVER_PORT=8501
+          export S3_BUCKET_NAME=$s3_bucket_name
+          export AWS_REGION=${AWS::Region}
+          export AWS_DEFAULT_REGION=${AWS::Region}
+          echo "export PATH=$PATH:/usr/local/bin/python3.10.14" >> /home/ec2-user/.bash_profile
+          echo "export STREAMLIT_SERVER_PORT=8501" >> /home/ec2-user/.bash_profile
+          echo "export S3_BUCKET_NAME=$s3_bucket_name" >> /home/ec2-user/.bash_profile
+          echo "export AWS_REGION=${AWS::Region}" >> /home/ec2-user/.bash_profile
+          echo "export AWS_DEFAULT_REGION=${AWS::Region}" >> /home/ec2-user/.bash_profile
+          cd /home/ec2-user/
+          python3.10 -m venv venv
+          source venv/bin/activate
+          echo "source ~/venv/bin/activate" >> /home/ec2-user/.bash_profile
+          git clone https://github.com/duttaabh/virtual_trainer
+          pip3.10 install -r virtual_trainer/requirements.txt
+          cp -r virtual_trainer /home/ec2-user/virtual_trainer
+          echo "#!/bin/bash" >> /home/ec2-user/setup_env.sh
+          echo "source ~/.bash_profile" >> /home/ec2-user/setup_env.sh
+          chmod 755 /home/ec2-user/setup_env.sh
+          chown -R ec2-user:ec2-user /home/ec2-user/
+  InstanceSecurityGroup:
+    Type: 'AWS::EC2::SecurityGroup'
+    Properties:
+      GroupDescription: Allow HTTP traffic
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: 8501
+          ToPort: 8501
+          CidrIp: !Ref CidrIPRange
+        - IpProtocol: tcp
+          FromPort: 22
+          ToPort: 22
+          CidrIp: !Ref CidrIPRange
+  InstanceProfile:
+    Type: AWS::IAM::InstanceProfile
+    Properties:
+      Path: /
+      Roles:
+        - !Ref AdminRole
+  AdminRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Effect: Allow
+            Principal:
+              AWS:
+                - !Sub arn:aws:iam::${AWS::AccountId}:root
+              Service:
+                - ec2.amazonaws.com
+            Action:
+              - sts:AssumeRole
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/AdministratorAccess
+Outputs:
+  EC2InstanceID:
+    Description: The Instance ID
+    Value: !Ref EC2Instance
+  BuckeName:
+    Description: The bucket name
+    Value: !Ref S3BucketName

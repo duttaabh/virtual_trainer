@@ -1,0 +1,6 @@
+id,first_name,last_name,target_weight,actual_weight,age,gender,bmi
+1,Vincent,Brown,91.89253067,96.30111546,45,Male,29.42627467
+2,Michael,Ijames,64.16509681,61.1046681,25,Male,21.28634599
+3,Jose,Smith,70.84622352,71.76672384,20,Male,27.8995916
+4,Manuel,Snyder,79.47700756,82.98445557,33,Male,33.72955245
+5,Carolyn,Heinlen,89.96022608,85.64317443,29,Female,23.28611341
