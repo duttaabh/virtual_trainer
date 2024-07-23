@@ -58,7 +58,7 @@ Resources:
           admin_role="arn:aws:iam::${AWS::AccountId}:role/${AdminRole}"
           echo $s3_bucket_name > /home/ec2-user/envconfig.txt
           echo $admin_role >> /home/ec2-user/envconfig.txt
-          export PATH=$PATH:/usr/local/bin/python3.10.14
+          export PATH=$PATH:/usr/local/bin/python3.10
           echo $PATH
           export STREAMLIT_SERVER_PORT=8501
           export S3_BUCKET_NAME=$s3_bucket_name
