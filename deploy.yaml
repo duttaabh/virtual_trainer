@@ -112,3 +112,6 @@ Outputs:
   BuckeName:
     Description: The bucket name
     Value: !Ref S3BucketName
+  AppURL:
+    Description: HTTP_URL
+    Value: !Sub http://${EC2Instance.PublicIp}:8501
