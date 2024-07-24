@@ -31,6 +31,11 @@ def create_table(table_name, region):
     time.sleep(10)
     return table
 
+def table_exists(table_name, region):
+    dynamodb = boto3.resource('dynamodb', region_name=region)
+    table = dynamodb.Table(table_name)
+    return table.table_status == 'ACTIVE'
+
 def insertDynamoItem(tablename, item_lst):
     for record in item_lst:
         tablename.put_item(Item=record)
@@ -51,4 +56,6 @@ if __name__ == '__main__':
                 {'item': df_trackers_json, 'table': 'exercise_details'}]
 
     for element in lst_Dics:
-        insertDynamoItem(create_table(table_name=element['table'], region=region), element['item'])
+        print(table_exists(table_name=element['table'], region=region))
+        if not table_exists(table_name=element['table'], region=region):
+            insertDynamoItem(create_table(table_name=element['table'], region=region), element['item'])
