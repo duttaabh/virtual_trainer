@@ -165,7 +165,17 @@ def ui_loader():
          else:
             schedule = st.session_state['member_profile']
             st.markdown(schedule, unsafe_allow_html=True)
-
+         st.subheader("View your personalized diet plan")
+         if 'diet_plan' not in st.session_state:
+            with st.spinner('Wait!! Generating your personalized diet plan...'):
+                schedule = utils.build_request(
+                    f'Recommend a weekly diet plan in html table format based on target weight {member_profile["target_weight"]} kg, actual weight {member_profile["actual_weight"]} kg, BMI {member_profile["bmi"]}, Gender {member_profile["gender"]} and Age {member_profile["age"]}, do not make up any data.',
+                    [])['content'][0]['text']
+                st.session_state['diet_plan'] = schedule
+                st.markdown(schedule, unsafe_allow_html=True)
+         else:
+            schedule = st.session_state['diet_plan']
+            st.markdown(schedule, unsafe_allow_html=True)
          st.subheader("View your personalized training schedule")
          if 'training_schedule' not in st.session_state:
             with st.spinner('Wait!! Generating your personalized schedule...'):
